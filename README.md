@@ -18,8 +18,8 @@ ghbot &lt;command&gt; [username]
 
 <pre>
 follow [username] — Follow all followers of the specified user.
-unfollow — Unfollow users who don’t follow you back.
 followers — Show your follower count.
+unfollow — Unfollow all users.
 </pre>
 
 <br>

@@ -1,15 +1,26 @@
 #!/bin/bash
 # Bash OctoBot
 
-if [[ -z "${personal_github_token:-}" ]]; then
-    echo -e "Error: 'personal_github_token' environment variable not set.\n\nTo resolve this:\n1. Generate a GitHub personal access token with the 'user:follow' and 'read:user' scopes at https://github.com/settings/tokens.\n2. Set the token in your environment with:\n   export personal_github_token=\"your_token_here\"\n3. To make this change permanent, add it to your '~/.bashrc' with:\n   echo 'export personal_github_token=\"your_token_here\"' >> ~/.bashrc\n   source ~/.bashrc\n\nAfter setting up the token, you can run OctoBot commands with:\n   ghbot <command> [username]\n\nFor more details, visit the GitHub repository."
+if [[ -z "$personal_github_token" ]]; then
+cat << EOF
+Error: 'personal_github_token' environment variable not set.
+
+To resolve this:
+1. Generate a GitHub personal access token with the 'user:follow' and 'read:user' scopes at https://github.com/settings/tokens.
+2. Set the token in your environment with:
+   export personal_github_token="your_token_here"
+3. To make this change permanent, add it to your '~/.bashrc' with:
+   echo 'export personal_github_token="your_token_here"' >> ~/.bashrc
+   source ~/.bashrc
+
+After setting up the token, you can run OctoBot commands with:
+   ghbot <command> [username]
+
+For more details, visit the GitHub repository.
+EOF
     exit 1
 fi
-github_user=$(gh api user | jq -r ".login")
-if [[ -z "$github_user" ]]; then
-    echo "Error: Unable to retrieve your GitHub username. Please ensure you are authenticated with the GitHub CLI."
-    exit 1
-fi
+github_user=$(curl -s -H "Authorization: token $personal_github_token" https://api.github.com/user | jq -r '.login')
 follower_counter=0
 count_file="/tmp/rate_limit_count"
 
@@ -149,7 +160,7 @@ elif [[ "$command" == "unfollow" ]]; then
         page=$((page + 1))
     done
 else
-    echo -e "Invalid option: $command\nUsage:\n $0 follow [username] # follow user followers\n $0 followers         # followers count\n $0 unfollow          # unfollow non followers."
+    echo -e "Invalid option: $command\nUsage:\n ghbot follow [username] # follow user followers\n ghbot followers         # followers count\n ghbot unfollow          # unfollow all"
     exit 1
 fi
 
