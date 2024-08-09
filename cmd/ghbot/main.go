@@ -2,7 +2,7 @@ package main
 
 import (
   "fmt"
-  "github.com/0bvim/octobot/initialize" // dir name 
+  "github.com/0bvim/octobot/pkg/utils" // dir name 
 ) 
 
 func main() {
