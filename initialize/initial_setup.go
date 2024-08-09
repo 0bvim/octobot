@@ -17,7 +17,7 @@ func Colorize(color string, text string) string {
     return color + text + Reset
 }
 
-func GetToken() (string, error) {
+func GetToken() string {
   personalGithubToken := os.Getenv("personal_github_token")
   if personalGithubToken == "" {
     fmt.Println(Colorize(Red, `Error: 'personal_github_token' environment variable not set.
@@ -36,5 +36,5 @@ func GetToken() (string, error) {
       For more details, visit the GitHub repository.`))
     os.Exit(0)
   }
-  return personalGithubToken, nil
+  return personalGithubToken
 }
