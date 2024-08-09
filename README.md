@@ -1,6 +1,5 @@
-## I'll start implementation with golang in develop branch.
-
 <div align="center">
+## I started development of this program in golang in feature/golang_implementation branch
 
 # OctoBot
 
