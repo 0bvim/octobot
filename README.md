@@ -1,5 +1,5 @@
 <div align="center">
-## I started development of this program in golang in feature/golang_implementation branch
+<h1>I started development of this program in golang in feature/golang_implementation branch</h1>
 
 # OctoBot
 
