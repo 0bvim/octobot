@@ -38,7 +38,8 @@ fetch_data() {
   local all_data=()
   while [[ -n "$url" ]]; do
     local response=$(curl -s -H "Authorization: token $personal_github_token" "$url")
-    if [[ "$response" == *"API rate limit exceeded"* ]]; then
+    local status_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $personal_github_token" "$url")
+    if [[ "$status_code" -eq 429 ]]; then
       handle_rate_limit
       continue
     fi
@@ -116,7 +117,7 @@ follow_user() {
         "204")
             echo "User: $user has been followed!"
             ;;
-        "403")
+        "403"|"429")
             echo "Error following $user: Forbidden. Handling rate limit..."
             handle_rate_limit
             follow_user "$user"
@@ -152,7 +153,7 @@ unfollow_user() {
         "204")
             echo "User: $user has been unfollowed!"
             ;;
-        "403")
+        "403"|"429")
             echo "Error unfollowing $user: Forbidden. Handling rate limit..."
             handle_rate_limit
             unfollow_user "$user"
@@ -170,9 +171,9 @@ process_users() {
   local job_count=0
   for user in "${users[@]}"; do
     if [[ "$command" == "unfollow" ]]; then
-      unfollow_user "$user" &
+      unfollow_user "$user"
     elif [[ "$command" == "follow" ]]; then
-      follow_user "$user" &
+      follow_user "$user"
     fi
     ((job_count++))
     if [[ $job_count -ge $max_jobs ]]; then
@@ -193,36 +194,41 @@ trap cleanup SIGINT EXIT
 command="$1"
 target_user="${2:-}"
 
-if [[ "$command" == "unfollow" ]]; then
-  following=($(fetch_following "$github_user"))
-  followers=($(fetch_followers "$github_user"))
-  users_to_unfollow=()
-  for user in "${following[@]}"; do
-    if [[ ! " ${followers[@]} " =~ " $user " && "$user" != "$github_user" ]]; then
-      users_to_unfollow+=("$user")
+case "$command" in
+  "unfollow")
+    following=($(fetch_following "$github_user"))
+    followers=($(fetch_followers "$github_user"))
+    users_to_unfollow=()
+    for user in "${following[@]}"; do
+      if [[ ! " ${followers[@]} " =~ " $user " && "$user" != "$github_user" ]]; then
+        users_to_unfollow+=("$user")
+      fi
+    done
+    process_users "${users_to_unfollow[@]}"
+    ;;
+  "followers")
+    followers=($(fetch_followers "$github_user"))
+    echo "You have ${#followers[@]} followers."
+    ;;
+  "following")
+    following=($(fetch_following "$github_user"))
+    echo "You follow ${#following[@]} users."
+    ;;
+  "follow")
+    if [[ -z "$target_user" ]]; then
+      read -p "User to fetch? " target_user
     fi
-  done
-  process_users "${users_to_unfollow[@]}"
-elif [[ "$command" == "followers" ]]; then
-  followers=($(fetch_followers "$github_user"))
-  echo "You have ${#followers[@]} followers."
-elif [[ "$command" == "following" ]]; then
-  following=($(fetch_following "$github_user"))
-  echo "You follow ${#following[@]} users."
-elif [[ "$command" == "follow" ]]; then
-  if [[ -z "$target_user" ]]; then
-    read -p "User to fetch? " target_user
-  fi
-  followers=($(fetch_followers "$target_user"))
-  following=($(fetch_following "$github_user"))
-  users_to_follow=()
-  for user in "${followers[@]}"; do
-    if [[ ! " ${following[@]} " =~ " $user " && "$user" != "$github_user" ]]; then
-      users_to_follow+=("$user")
-    fi
-  done
-  process_users "${users_to_follow[@]}"
-else
+    followers=($(fetch_followers "$target_user"))
+    following=($(fetch_following "$github_user"))
+    users_to_follow=()
+    for user in "${followers[@]}"; do
+      if [[ ! " ${following[@]} " =~ " $user " && "$user" != "$github_user" ]]; then
+        users_to_follow+=("$user")
+      fi
+    done
+    process_users "${users_to_follow[@]}"
+    ;;
+  *)
 cat << EOF
 Invalid option: $command
 
@@ -233,8 +239,8 @@ Usage:
  ghbot unfollow              # Unfollow users who do not follow you back
 
 EOF
-  exit 1
-fi
-
+    exit 1
+    ;;
+esac
 echo -e "Operation completed!"
 cleanup
