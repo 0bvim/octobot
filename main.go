@@ -6,9 +6,6 @@ import (
 ) 
 
 func main() {
-  token, err := initial.GetToken() // package name to call the functions
-  if err != nil {
-    return
-  }
+  token := initial.GetToken() // package name to call the functions
   fmt.Println("Success " + token)
 }
